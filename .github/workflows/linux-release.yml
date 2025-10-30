@@ -66,13 +66,13 @@ jobs:
         source .github/workflows/scripts/set_version.sh
         export VERSION=${RIPES_VERSION}-linux # linuxdeployqt uses this for naming the package
         echo "Version is: ${VERSION}"
-        ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/*.desktop \
+        ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/UCLM-Ripes.desktop \
           -appimage -verbose=2 -extra-plugins=iconengines
 
     - uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.build-type }}_executable
-        path: Ripes*.AppImage*
+        path: UCLM_Ripes*.AppImage*
 
     - name: continuous release
       uses: softprops/action-gh-release@v1
@@ -88,6 +88,6 @@ jobs:
       name: tagged release
       uses: softprops/action-gh-release@v1
       with:
-        files: Ripes*.AppImage*
+        files: UCLM_Ripes*.AppImage*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
