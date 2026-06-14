@@ -70,6 +70,7 @@ create_ripes_lib(${RIPES_LIB} FIXED_NAME EXCLUDE_SRC_INC)
 # ripes_lib
 add_subdirectory(isa)
 add_subdirectory(cachesim)
+add_subdirectory(vmemsim)
 add_subdirectory(editor)
 add_subdirectory(syscall)
 add_subdirectory(assembler)

@@ -19,6 +19,7 @@ class MemoryTab;
 class ProcessorTab;
 class CacheTab;
 class IOTab;
+class VMemTab;
 class ProcessorHandler;
 class RipesTab;
 struct LoadFileParams;
@@ -37,6 +38,7 @@ class MainWindow : public QMainWindow {
     CacheTabID,
     MemoryTabID,
     IOTabID,
+    VMemTabID,
     NTabsID
   };
 

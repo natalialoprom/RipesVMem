@@ -3,6 +3,7 @@
 #include "ui_mainwindow.h"
 
 #include "cachetab.h"
+#include "vmemtab.h"
 #include "cachetabwidget.h"
 #include "edittab.h"
 #include "iotab.h"
@@ -93,12 +94,19 @@ MainWindow::MainWindow(QWidget *parent)
   m_stackedTabs->insertWidget(IOTabID, IOTab);
   m_tabWidgets[IOTabID] = {IOTab, IOToolbar};
 
+  auto *vmemToolbar = addToolBar("Virtual Memory");
+  vmemToolbar->setVisible(false);
+  auto *vmemTab = new VMemTab(vmemToolbar, this);
+  m_stackedTabs->insertWidget(VMemTabID, vmemTab);
+  m_tabWidgets[VMemTabID] = {vmemTab, vmemToolbar};
+
   // Setup tab bar
   m_ui->tabbar->addFancyTab(QIcon(":/icons/binary-code.svg"), "Editor");
   m_ui->tabbar->addFancyTab(QIcon(":/icons/cpu.svg"), "Processor");
   m_ui->tabbar->addFancyTab(QIcon(":/icons/server.svg"), "Cache");
   m_ui->tabbar->addFancyTab(QIcon(":/icons/ram-memory.svg"), "Memory");
   m_ui->tabbar->addFancyTab(QIcon(":/icons/led.svg"), "I/O");
+  m_ui->tabbar->addFancyTab(QIcon(":/icons/documents.svg"), "Virtual Memory");
   connect(m_ui->tabbar, &FancyTabBar::activeIndexChanged, this,
           &MainWindow::tabChanged);
   connect(m_ui->tabbar, &FancyTabBar::activeIndexChanged, m_stackedTabs,
