@@ -1,0 +1,1 @@
+create_ripes_lib(vmemsim LINK_TO_RIPES_LIB)
