@@ -67,7 +67,7 @@ void VMemTableWidget::rebuildTables() {
   m_tlbTable->setRowCount(m_vmemSim->getTLBEntries());
 
   m_ptTable->clearContents();
-  m_ptTable->setRowCount(m_vmemSim->getPageCount());
+  m_ptTable->setRowCount(m_vmemSim->getFrameCount());
 
   populateTLBTable();
   populatePageTable();

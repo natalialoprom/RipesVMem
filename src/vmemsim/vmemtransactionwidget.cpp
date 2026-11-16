@@ -2,6 +2,7 @@
 
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QVBoxLayout>
 
 namespace Ripes {
@@ -24,15 +25,11 @@ static QString bitField(uint32_t value, int bits) {
 
 // ── Construction ──────────────────────────────────────────────────────────────
 
-VMemTransactionWidget::VMemTransactionWidget(std::shared_ptr<VMemSim> vmemSim,
-                                             QWidget *parent)
-    : QWidget(parent), m_vmemSim(std::move(vmemSim)) {
-
-  auto *outerLayout = new QVBoxLayout(this);
-  outerLayout->setContentsMargins(0, 0, 0, 0);
-
-  auto *group  = new QGroupBox("Last address translation:");
-  auto *form   = new QFormLayout(group);
+static QGroupBox *makePanel(const QString &title,
+                             VMemTransactionWidget::TxFields &f) {
+  // TxFields is not a nested class — but we're in the .cpp so it's fine.
+  auto *group = new QGroupBox(title);
+  auto *form  = new QFormLayout(group);
   form->setLabelAlignment(Qt::AlignRight);
 
   const auto addRow = [&](const QString &label, QLabel *&field) {
@@ -41,76 +38,92 @@ VMemTransactionWidget::VMemTransactionWidget(std::shared_ptr<VMemSim> vmemSim,
     form->addRow(label, field);
   };
 
-  addRow("Virtual address:",  m_virtualAddr);
-  addRow("VPN:",              m_vpn);
-  addRow("Page offset:",      m_pageOffset);
-  addRow("TLB result:",       m_tlbResult);
-  addRow("PT result:",        m_ptResult);
-  addRow("PFN:",              m_pfn);
-  addRow("Physical address:", m_physicalAddr);
-  addRow("Translation cost:", m_translCost);
-  addRow("Access type:",      m_accessType);
+  addRow("Virtual address:",  f.virtualAddr);
+  addRow("VPN:",              f.vpn);
+  addRow("Page offset:",      f.pageOffset);
+  addRow("TLB result:",       f.tlbResult);
+  addRow("PT result:",        f.ptResult);
+  addRow("PFN:",              f.pfn);
+  addRow("Physical address:", f.physicalAddr);
+  addRow("Translation cost:", f.translCost);
+  addRow("Access type:",      f.accessType);
 
-  outerLayout->addWidget(group);
+  return group;
+}
+
+VMemTransactionWidget::VMemTransactionWidget(std::shared_ptr<VMemSim> vmemSim,
+                                             QWidget *parent)
+    : QWidget(parent), m_vmemSim(std::move(vmemSim)) {
+
+  auto *outerLayout = new QVBoxLayout(this);
+  outerLayout->setContentsMargins(0, 0, 0, 0);
+
+  auto *row = new QHBoxLayout;
+  row->addWidget(makePanel("Data access:", m_dataFields));
+  row->addWidget(makePanel("Instruction access:", m_instrFields));
+  outerLayout->addLayout(row);
   outerLayout->addStretch();
 
-  connect(m_vmemSim.get(), &VMemSim::dataChanged,
-          this, &VMemTransactionWidget::dataChanged);
+  connect(m_vmemSim.get(), &VMemSim::cycleChanged,
+          this, &VMemTransactionWidget::onCycleChanged);
 
-  clearFields();
+  clearFields(m_dataFields);
+  clearFields(m_instrFields);
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
 
-void VMemTransactionWidget::dataChanged(VMemSim::VMemTransaction t) {
+void VMemTransactionWidget::onCycleChanged(VMemSim::VMemCyclePair pair) {
+  if (pair.hasData)
+    populateFields(m_dataFields, pair.data);
+  else
+    clearFields(m_dataFields);
+
+  if (pair.hasInstr)
+    populateFields(m_instrFields, pair.instr);
+  else
+    clearFields(m_instrFields);
+}
+
+void VMemTransactionWidget::populateFields(TxFields &f,
+                                           const VMemSim::VMemTransaction &t) {
   const int offsetBits = m_vmemSim->getPageOffsetBits();
   const int vpnBits    = m_vmemSim->getVpnBits();
   const int pfnBits    = m_vmemSim->getPfnBits();
 
-  m_virtualAddr->setText(QString("0x%1").arg(t.virtualAddress, 0, 16));
-  m_vpn->setText(bitField(t.vpn, vpnBits));
-  m_pageOffset->setText(bitField(t.pageOffset, offsetBits));
+  f.virtualAddr->setText(QString("0x%1").arg(t.virtualAddress, 0, 16));
+  f.vpn->setText(bitField(t.vpn, vpnBits));
+  f.pageOffset->setText(bitField(t.pageOffset, offsetBits));
 
   if (!m_vmemSim->getTLBEnabled()) {
-    m_tlbResult->setText("N/A");
+    f.tlbResult->setText("N/A");
   } else {
-    m_tlbResult->setText(t.tlbHit ? "HIT" : "MISS");
+    f.tlbResult->setText(t.tlbHit ? "HIT" : "MISS");
   }
 
-  if (t.pageFault) {
-    m_ptResult->setText("PAGE FAULT");
-  } else {
-    m_ptResult->setText("HIT");
-  }
-
-  m_pfn->setText(bitField(t.pfn, pfnBits));
-  m_physicalAddr->setText(QString("0x%1").arg(t.physicalAddress, 0, 16));
-  m_translCost->setText(QString("%1 cycles").arg(t.cyclesCost));
+  f.ptResult->setText(t.pageFault ? "PAGE FAULT" : "HIT");
+  f.pfn->setText(bitField(t.pfn, pfnBits));
+  f.physicalAddr->setText(QString("0x%1").arg(t.physicalAddress, 0, 16));
+  f.translCost->setText(QString("%1 cycles").arg(t.cyclesCost));
 
   switch (t.type) {
-  case MemoryAccess::Read:
-    m_accessType->setText("Read");
-    break;
-  case MemoryAccess::Write:
-    m_accessType->setText("Write");
-    break;
-  default:
-    m_accessType->setText("—");
-    break;
+  case MemoryAccess::Read:  f.accessType->setText("Read");  break;
+  case MemoryAccess::Write: f.accessType->setText("Write"); break;
+  default:                  f.accessType->setText("—");     break;
   }
 }
 
-void VMemTransactionWidget::clearFields() {
+void VMemTransactionWidget::clearFields(TxFields &f) {
   const QString dash = "—";
-  m_virtualAddr->setText(dash);
-  m_vpn->setText(dash);
-  m_pageOffset->setText(dash);
-  m_tlbResult->setText(dash);
-  m_ptResult->setText(dash);
-  m_pfn->setText(dash);
-  m_physicalAddr->setText(dash);
-  m_translCost->setText(dash);
-  m_accessType->setText(dash);
+  f.virtualAddr->setText(dash);
+  f.vpn->setText(dash);
+  f.pageOffset->setText(dash);
+  f.tlbResult->setText(dash);
+  f.ptResult->setText(dash);
+  f.pfn->setText(dash);
+  f.physicalAddr->setText(dash);
+  f.translCost->setText(dash);
+  f.accessType->setText(dash);
 }
 
 } // namespace Ripes

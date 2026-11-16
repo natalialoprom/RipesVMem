@@ -13,7 +13,6 @@ VMemShim::VMemShim(QObject *parent)
   connect(ProcessorHandler::get(), &ProcessorHandler::processorReversed, this,
           &VMemShim::processorReversed);
 
-  processorReset();
 }
 
 void VMemShim::processorReset() {
@@ -28,15 +27,26 @@ void VMemShim::processorWasClocked() {
   const auto dataAccess = ProcessorHandler::getProcessor()->dataMemAccess();
   const auto instrAccess = ProcessorHandler::getProcessor()->instrMemAccess();
 
+  VMemSim::VMemTransaction dataTx, instrTx;
+  bool hasData = false, hasInstr = false;
+
   if (dataAccess.type == MemoryAccess::Write) {
     m_vmemSim->access(dataAccess.address, MemoryAccess::Write);
+    dataTx = m_vmemSim->getLastTransaction();
+    hasData = true;
   } else if (dataAccess.type == MemoryAccess::Read) {
     m_vmemSim->access(dataAccess.address, MemoryAccess::Read);
+    dataTx = m_vmemSim->getLastTransaction();
+    hasData = true;
   }
 
   if (instrAccess.type == MemoryAccess::Read) {
     m_vmemSim->access(instrAccess.address, MemoryAccess::Read);
+    instrTx = m_vmemSim->getLastTransaction();
+    hasInstr = true;
   }
+
+  m_vmemSim->emitCyclePair(dataTx, hasData, instrTx, hasInstr);
 }
 
 } // namespace Ripes

@@ -16,23 +16,29 @@ public:
   explicit VMemTransactionWidget(std::shared_ptr<VMemSim> vmemSim,
                                  QWidget *parent = nullptr);
 
+  struct TxFields {
+    QLabel *virtualAddr  = nullptr;
+    QLabel *vpn          = nullptr;
+    QLabel *pageOffset   = nullptr;
+    QLabel *tlbResult    = nullptr;
+    QLabel *ptResult     = nullptr;
+    QLabel *pfn          = nullptr;
+    QLabel *physicalAddr = nullptr;
+    QLabel *translCost   = nullptr;
+    QLabel *accessType   = nullptr;
+  };
+
 private slots:
-  void dataChanged(VMemSim::VMemTransaction transaction);
+  void onCycleChanged(VMemSim::VMemCyclePair pair);
 
 private:
-  void clearFields();
+  void populateFields(TxFields &f, const VMemSim::VMemTransaction &t);
+  void clearFields(TxFields &f);
 
   std::shared_ptr<VMemSim> m_vmemSim;
 
-  QLabel *m_virtualAddr    = nullptr;
-  QLabel *m_vpn            = nullptr;
-  QLabel *m_pageOffset     = nullptr;
-  QLabel *m_tlbResult      = nullptr;
-  QLabel *m_ptResult       = nullptr;
-  QLabel *m_pfn            = nullptr;
-  QLabel *m_physicalAddr   = nullptr;
-  QLabel *m_translCost     = nullptr;
-  QLabel *m_accessType     = nullptr;
+  TxFields m_dataFields;
+  TxFields m_instrFields;
 };
 
 } // namespace Ripes

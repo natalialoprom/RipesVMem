@@ -104,9 +104,20 @@ public:
   int getPageCount() const { return 1 << m_vpnBits; }
   int getFrameCount() const { return 1 << m_pfnBits; }
 
+  struct VMemCyclePair {
+    VMemTransaction data;
+    bool hasData = false;
+    VMemTransaction instr;
+    bool hasInstr = false;
+  };
+
+  void emitCyclePair(VMemTransaction dataTx, bool hasData,
+                     VMemTransaction instrTx, bool hasInstr);
+
 public slots:
   void setPageOffsetBits(int bits);
   void setVpnBits(int bits);
+  void setVirtualAddressBits(int pageOffsetBits, int vpnBits);
   void setPfnBits(int bits);
   void setMainMemCycles(int cycles);
   void setDiskCycles(int cycles);
@@ -118,6 +129,7 @@ signals:
   void configurationChanged();
   void dataChanged(VMemSim::VMemTransaction transaction);
   void statsChanged();
+  void cycleChanged(VMemSim::VMemCyclePair pair);
 
 private:
   // ── Configuration ──────────────────────────────────────────────────────────
@@ -180,3 +192,4 @@ private:
 } // namespace Ripes
 
 Q_DECLARE_METATYPE(Ripes::VMemSim::VMemTransaction)
+Q_DECLARE_METATYPE(Ripes::VMemSim::VMemCyclePair)

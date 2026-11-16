@@ -300,7 +300,7 @@ void VMemSim::access(AInt virtualAddress, MemoryAccess::Type type) {
 
 void VMemSim::reset() {
   m_tlb.assign(m_tlbEntries, TLBEntry{});
-  m_pageTable.assign(1 << m_vpnBits, PageTableEntry{});
+  m_pageTable.assign(1 << m_pfnBits, PageTableEntry{});
   m_accessTrace = VMemAccessTrace{};
   m_transactionHistory.clear();
   m_traceStack.clear();
@@ -374,6 +374,24 @@ void VMemSim::setPageOffsetBits(int bits) {
 void VMemSim::setVpnBits(int bits) {
   m_vpnBits = bits;
   updateConfiguration();
+}
+
+void VMemSim::setVirtualAddressBits(int pageOffsetBits, int vpnBits) {
+  m_pageOffsetBits = pageOffsetBits;
+  m_vpnBits = vpnBits;
+  updateConfiguration();
+}
+
+void VMemSim::emitCyclePair(VMemTransaction dataTx, bool hasData,
+                             VMemTransaction instrTx, bool hasInstr) {
+  if (!ProcessorHandler::isRunning()) {
+    VMemCyclePair pair;
+    pair.data = dataTx;
+    pair.hasData = hasData;
+    pair.instr = instrTx;
+    pair.hasInstr = hasInstr;
+    emit cycleChanged(pair);
+  }
 }
 
 void VMemSim::setPfnBits(int bits) {

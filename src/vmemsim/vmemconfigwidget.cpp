@@ -30,7 +30,7 @@ void VMemConfigWidget::setupLayout() {
 
   // Page offset bits
   m_pageOffsetBits = new QSpinBox;
-  m_pageOffsetBits->setRange(1, 16);
+  m_pageOffsetBits->setRange(1, 31);
   m_pageOffsetBits->setValue(m_vmemSim->getPageOffsetBits());
   m_pageSizeLabel = new QLabel;
   cfgGrid->addWidget(new QLabel("Page offset bits:"),  row, 0);
@@ -40,7 +40,7 @@ void VMemConfigWidget::setupLayout() {
 
   // VPN bits
   m_vpnBits = new QSpinBox;
-  m_vpnBits->setRange(1, 16);
+  m_vpnBits->setRange(1, 31);
   m_vpnBits->setValue(m_vmemSim->getVpnBits());
   m_pageCountLabel = new QLabel;
   cfgGrid->addWidget(new QLabel("VPN bits:"),   row, 0);
@@ -124,11 +124,23 @@ void VMemConfigWidget::setupLayout() {
 // ── Signal wiring ─────────────────────────────────────────────────────────────
 
 void VMemConfigWidget::connectSignals() {
-  // Spinbox → VMemSim setters
+  // Spinbox → VMemSim setters (coupled: offset + vpn = 32)
   connect(m_pageOffsetBits, QOverload<int>::of(&QSpinBox::valueChanged),
-          m_vmemSim.get(), &VMemSim::setPageOffsetBits);
+          this, [this](int offset) {
+            const int vpn = 32 - offset;
+            m_vpnBits->blockSignals(true);
+            m_vpnBits->setValue(vpn);
+            m_vpnBits->blockSignals(false);
+            m_vmemSim->setVirtualAddressBits(offset, vpn);
+          });
   connect(m_vpnBits, QOverload<int>::of(&QSpinBox::valueChanged),
-          m_vmemSim.get(), &VMemSim::setVpnBits);
+          this, [this](int vpn) {
+            const int offset = 32 - vpn;
+            m_pageOffsetBits->blockSignals(true);
+            m_pageOffsetBits->setValue(offset);
+            m_pageOffsetBits->blockSignals(false);
+            m_vmemSim->setVirtualAddressBits(offset, vpn);
+          });
   connect(m_pfnBits, QOverload<int>::of(&QSpinBox::valueChanged),
           m_vmemSim.get(), &VMemSim::setPfnBits);
   connect(m_mainMemCycles, QOverload<int>::of(&QSpinBox::valueChanged),
